@@ -1,34 +1,3 @@
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.rdd.RDD
-
-import java.time.LocalDate
-
-
-
-/*
-1. Read Employee from csv file with 4 column {empId, empName, empSal, empDob, empDoj}
-
-2. Remove the duplicate records
-
-3. Sort it based on empDoj
-
-4. Iterate and print the data
-
-
-1)Read the file
-
-2)display distinct records
-
-3)sorted records using DOJ and DOB
-
-4) highest , lowest, avg salary
-
-5) employee above avg and below avg salary
- */
-
-
-case class Employee(empId: Int, empName: String, empSal: Double, empDob: LocalDate, empDoj: LocalDate)
-
 class CSV_proccessor {
   val spark = SparkSession.builder()
     .master("local[1]")
@@ -60,32 +29,70 @@ class CSV_proccessor {
   //unique_employee.max("empSal")
 
   // highest , lowest, avg salary
-  val total_sal: DataFrame = spark.sql("select sum(empSal) from employee_data")
-  total_sal.show()
-  val tot = total_sal.toString().toInt
-  println(tot)
-  val total_uni_emp = unique.count()
-  //val avg = total_sal["sum(empSal)"]/ total_uni_emp;
-  println(total_sal.collect().mkString("Array(", ", ", ")").toInt)
+
+
+//  val total_sal: DataFrame = spark.sql("select sum(empSal) from employee_data")
+//  total_sal.show()
+// val tot = total_sal.first();
+//  println(tot)
+//  val total_uni_emp = unique.count()
+  //val avg = tot / total_uni_emp;
+ // println(total_sal.collect().mkString("Array(", ", ", ")").toInt)
+
+
+  val averageSalary = unique.select(avg("empSal")).first().getDouble(0)
+
+  val maxSalary = unique.select(max("empSal")).first().getInt(0)
+  val highestSalaryRecords = unique.filter(col("empSal") === maxSalary)
+
+  val minSalary = unique.select(min("empSal")).first().getInt(0)
+  val lowestSalaryRecords = unique.filter(col("empSal") === minSalary)
+
+  println("Records with Highest Salary:")
+  highestSalaryRecords.show()
+
+  println("Records with Lowest Salary:")
+  lowestSalaryRecords.show()
+
+  println(s"Average Salary: $averageSalary")
 
 
 
+//Using RDD
+  println()
   println("spark read csv files from a directory into RDD")
   val rddFromFile = spark.sparkContext.textFile("C:\\Users\\INTEL\\Downloads\\employees1.csv")
-  println(rddFromFile.getClass)
 
-  val rdd = rddFromFile.map(f=>{
-    f.split(",")
+  @transient val header = rddFromFile.first()
+
+  println(header)
+
+  val emp_data = rddFromFile.filter(row => row!= header).persist()
+
+  emp_data.foreach(println)
+
+  val uniqueRDD = emp_data.distinct()
+
+  uniqueRDD.foreach(println)
+
+  def processLine(line: String): String = {
+    line.split(",")(2)  // Assuming salary is the 3th field (index 2)
+  }
+
+  /*
+  val rdd = uniqueRDD.map(line => {
+    val fields = line.split(",")
+    val salary = fields(2).toInt  // Assuming salary is the 3th field (index 5)
+    (salary, line)
   })
+   */
 
-  val employees = rdd.map(row => Employee(
-    row(0).toInt,
-    row(1),
-    row(2).toDouble,
-    LocalDate.parse(row(3)),
-    LocalDate.parse(row(4))
-  ))
+  val keyValueRDD = uniqueRDD.map(line => (processLine(line), line))
 
-  println("Iterate RDD")
-  rdd.foreach(println)
+  val total_Salary = keyValueRDD.map(_._1.toLong).sum()
+  val num_Records = keyValueRDD.count()
+  val avg_Salary = total_Salary / num_Records
 
+  println(s"Average Salary: $averageSalary")
+
+}
