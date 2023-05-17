@@ -1,7 +1,33 @@
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.rdd.RDD
 
+import java.time.LocalDate
 
+
+
+/*
+1. Read Employee from csv file with 4 column {empId, empName, empSal, empDob, empDoj}
+
+2. Remove the duplicate records
+
+3. Sort it based on empDoj
+
+4. Iterate and print the data
+
+
+1)Read the file
+
+2)display distinct records
+
+3)sorted records using DOJ and DOB
+
+4) highest , lowest, avg salary
+
+5) employee above avg and below avg salary
+ */
+
+
+case class Employee(empId: Int, empName: String, empSal: Double, empDob: LocalDate, empDoj: LocalDate)
 
 class CSV_proccessor {
   val spark = SparkSession.builder()
@@ -9,68 +35,57 @@ class CSV_proccessor {
     .appName("SparkByExample")
     .getOrCreate();
 
-  val df = spark.read.format("csv").option("header", true).load("C:\\Users\\INTEL\\Downloads\\employees1.csv");
+  println("Read CSV file as a DataFrame")
+  val df = spark.read.format("csv").option("header", true).option("InferSchema", true).load("C:\\Users\\INTEL\\Downloads\\employees1.csv");
 
   df.show()
 
   df.createOrReplaceTempView("employee_data");
 
-  val unique_employee = df.groupBy("empId")
+  //display distinct records
+  println("Unique Data of Employee")
+  val unique = df.dropDuplicates()
+  unique.show()
 
 
-  unique_employee.max("empSal")
+  //sorted records using DOJ and DOB
+  val sorted = unique.sort("empDoj", "empDob")
 
-  val total_expenditure: DataFrame = spark.sql("select sum(empSal) from employee_data")
-  total_expenditure.show()
+  sorted.show()
 
-  spark.sparkContext.setLogLevel("ERROR")
+  //val unique_employee = df.groupBy("empId")
+
+
+
+  //unique_employee.max("empSal")
+
+  // highest , lowest, avg salary
+  val total_sal: DataFrame = spark.sql("select sum(empSal) from employee_data")
+  total_sal.show()
+  val tot = total_sal.toString().toInt
+  println(tot)
+  val total_uni_emp = unique.count()
+  //val avg = total_sal["sum(empSal)"]/ total_uni_emp;
+  println(total_sal.collect().mkString("Array(", ", ", ")").toInt)
+
+
 
   println("spark read csv files from a directory into RDD")
-  val rddFromFile = spark.sparkContext.textFile("C:/tmp/files/text01.csv")
+  val rddFromFile = spark.sparkContext.textFile("C:\\Users\\INTEL\\Downloads\\employees1.csv")
   println(rddFromFile.getClass)
 
   val rdd = rddFromFile.map(f=>{
     f.split(",")
   })
 
+  val employees = rdd.map(row => Employee(
+    row(0).toInt,
+    row(1),
+    row(2).toDouble,
+    LocalDate.parse(row(3)),
+    LocalDate.parse(row(4))
+  ))
+
   println("Iterate RDD")
-  rdd.foreach(f=>{
-    println("Col1:"+f(0)+",Col2:"+f(1))
-  })
-  println(rdd)
+  rdd.foreach(println)
 
-  println("Get data Using collect")
-  rdd.collect().foreach(f=>{
-    println("Col1:"+f(0)+",Col2:"+f(1))
-  })
-
-
-}
-
-object ReadMultipleCSVFiles extends App {
-
-  val spark:SparkSession = SparkSession.builder()
-    .master("local[1]")
-    .appName("ReadMultipleCSV_files")
-    .getOrCreate()
-
-
-  println("read all csv files from a directory to single RDD")
-  val rdd2 = spark.sparkContext.textFile("C:/tmp/files/*")
-  rdd2.foreach(f=>{
-    println(f)
-  })
-
-  println("read csv files base on wildcard character")
-  val rdd3 = spark.sparkContext.textFile("C:/tmp/files/text*.csv")
-  rdd3.foreach(f=>{
-    println(f)
-  })
-
-  println("read multiple csv files into a RDD")
-  val rdd4 = spark.sparkContext.textFile("C:/tmp/files/text01.csv,C:/tmp/files/text02.csv")
-  rdd4.foreach(f=>{
-    println(f)
-  })
-
-}
