@@ -48,3 +48,20 @@ object process_crimeFile extends App{
 }
 
 }
+
++--------------------+------------+
+|               crime|count(crime)|
++--------------------+------------+
+|LARCENY-FROM VEHICLE|       77345|
+| LARCENY-NON VEHICLE|       64697|
+|     BURGLARY-NONRES|        8505|
+|  ROBBERY-PEDESTRIAN|       14446|
+|          AUTO THEFT|       38168|
+|            HOMICIDE|         728|
+|                RAPE|         990|
+|  ROBBERY-COMMERCIAL|        1855|
+|   ROBBERY-RESIDENCE|        1880|
+|  BURGLARY-RESIDENCE|       42941|
+|         AGG ASSAULT|       19133|
++--------------------+------------+
+
